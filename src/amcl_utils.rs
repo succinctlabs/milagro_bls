@@ -9,7 +9,7 @@ use BLSCurve::bls381::proof_of_possession::DST_G2;
 use BLSCurve::ecp::ECP;
 use BLSCurve::ecp2::ECP2;
 use BLSCurve::pair::{ate2, fexp};
-
+use sp1_precompiles::bls12381::decompress_pubkey;
 pub use amcl::errors::AmclError;
 pub use BLSCurve::big::{Big, MODBYTES};
 pub use BLSCurve::bls381::proof_of_possession::{G1_BYTES, G2_BYTES, SECRET_KEY_BYTES};
@@ -56,7 +56,21 @@ pub fn decompress_g1(g1_bytes: &[u8]) -> Result<GroupG1, AmclError> {
     if g1_bytes.len() != G1_BYTES {
         return Err(AmclError::InvalidG1Size);
     }
-    deserialize_g1(g1_bytes)
+    
+    // Convert g1_bytes to [u8; 48]
+    let mut compressed_key = [0u8; 48];
+    compressed_key.copy_from_slice(g1_bytes);
+    
+    // Use decompress_pubkey function
+    match decompress_pubkey(&compressed_key) {
+        Ok(decompressed) => {
+            // Convert decompressed [u8; 96] to GroupG1 (ECP)
+            let x = Big::from_bytes(&decompressed[0..48]);
+            let y = Big::from_bytes(&decompressed[48..96]);
+            Ok(ECP::new_bigs(&x, &y))
+        },
+        Err(_) => Err(AmclError::InvalidPoint),
+    }
 }
 
 // Take a GroupG2 point (x, y) and compress it to a 384*2 bit array.
