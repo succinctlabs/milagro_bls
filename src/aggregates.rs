@@ -31,7 +31,9 @@ impl AggregatePublicKey {
             return Err(AmclError::AggregateEmptyPoints);
         }
 
-        let mut agg_key = Self { point: GroupG1::new() };
+        let mut agg_key = Self {
+            point: GroupG1::new(),
+        };
         for key in keys {
             agg_key.point.add(&key.point)
         }
@@ -59,7 +61,9 @@ impl AggregatePublicKey {
     ///
     /// Pre-requsites: Public key must be PoP verified before calling this function.
     pub fn from_public_key(key: &PublicKey) -> Self {
-        AggregatePublicKey { point: key.point.clone() }
+        AggregatePublicKey {
+            point: key.point.clone(),
+        }
     }
 
     /// Add a PublicKey to the AggregatePublicKey.
@@ -91,7 +95,9 @@ impl AggregateSignature {
     ///
     /// The underlying point will be set to infinity.
     pub fn new() -> Self {
-        Self { point: GroupG2::new() }
+        Self {
+            point: GroupG2::new(),
+        }
     }
 
     /// Instantiate a new AggregateSignature from a vector of Signatures.
@@ -107,7 +113,9 @@ impl AggregateSignature {
 
     /// Instantiate a new AggregateSignature from a single Signature.
     pub fn from_signature(signature: &Signature) -> Self {
-        AggregateSignature { point: signature.point.clone() }
+        AggregateSignature {
+            point: signature.point.clone(),
+        }
     }
 
     /// Add a Signature to the AggregateSignature.
@@ -174,19 +182,32 @@ impl AggregateSignature {
     /// Verifies an AggregateSignature against a list of PublicKeys.
     /// PublicKeys must all be verified via Proof of Possession before running this function.
     /// https://tools.ietf.org/html/draft-irtf-cfrg-bls-signature-02#section-3.3.4
+    /// 2024-07-02T00:42:37.299590Z DEBUG execute: │ ┌╴fast_aggregate_verify    
+// 1. subgroup-check-g2: 105,181,659 cycles
+// 2. aggregate-public-keys: 43,656,806 cycles
+// 3. hash-to-curve-g2: 74,764,286 cycles
+// 4. affine-transformations: 2,698,291 cycles
+// 5. generator-g1-negative: 54,595 cycles
+// 6. ate2-evaluation: 152,367,371 cycles
+// Total for fast_aggregate_verify: 378,727,635 cycles
     pub fn fast_aggregate_verify(&self, msg: &[u8], public_keys: &[&PublicKey]) -> bool {
+        println!("cycle-tracker-start: fast_aggregate_verify");
         // Require at least one PublicKey
         if public_keys.is_empty() {
             return false;
         }
 
+        println!("cycle-tracker-start: subgroup-check-g2");
         // Subgroup check for signature
         if !subgroup_check_g2(&self.point) {
             return false;
         }
+        println!("cycle-tracker-end: subgroup-check-g2");
 
         // Aggregate PublicKeys
+        println!("cycle-tracker-start: aggregate-public-keys");
         let aggregate_public_key = AggregatePublicKey::aggregate(public_keys);
+        println!("cycle-tracker-end: aggregate-public-keys");
         if aggregate_public_key.is_err() {
             return false;
         }
@@ -197,21 +218,32 @@ impl AggregateSignature {
             return false;
         }
 
+        println!("cycle-tracker-start: hash-to-curve-g2");
         // Hash message to curve
         let mut msg_hash = hash_to_curve_g2(msg);
+        println!("cycle-tracker-end: hash-to-curve-g2");
 
+        println!("cycle-tracker-start: affine-transformations");
         // Points must be affine for pairing
         let mut sig_point = self.point.clone();
         let mut key_point = aggregate_public_key.point;
         sig_point.affine();
         key_point.affine();
         msg_hash.affine();
+        println!("cycle-tracker-end: affine-transformations");
 
+        println!("cycle-tracker-start: generator-g1-negative");
         let mut generator_g1_negative = amcl_utils::GroupG1::generator();
         generator_g1_negative.neg(); // already affine
+        println!("cycle-tracker-end: generator-g1-negative");
 
+        println!("cycle-tracker-start: ate2-evaluation");
         // Faster ate2 evaualtion checks e(S, -G1) * e(H, PK) == 1
-        ate2_evaluation(&sig_point, &generator_g1_negative, &msg_hash, &key_point)
+        let temp = ate2_evaluation(&sig_point, &generator_g1_negative, &msg_hash, &key_point);
+        println!("cycle-tracker-end: ate2-evaluation");
+
+        println!("cycle-tracker-end: fast_aggregate_verify");
+        return temp;
     }
 
     /// FastAggregateVerify - pre-aggregated PublicKeys
@@ -433,7 +465,11 @@ mod tests {
             subset
         };
 
-        let messages = vec!["Small msg".as_bytes(), "cats lol".as_bytes(), &[42_u8; 133700]];
+        let messages = vec![
+            "Small msg".as_bytes(),
+            "cats lol".as_bytes(),
+            &[42_u8; 133700],
+        ];
 
         for message in messages {
             let mut agg_signature = AggregateSignature::new();
@@ -933,7 +969,9 @@ mod tests {
         let multiplier = Big::new_int(5);
         let mut point = GroupG1::generator();
         point = point.mul(&multiplier);
-        let public_key = PublicKey { point: point.clone() };
+        let public_key = PublicKey {
+            point: point.clone(),
+        };
         let aggregate_public_key = AggregatePublicKey::from_public_key(&public_key);
 
         assert_eq!(public_key.point, aggregate_public_key.point);
