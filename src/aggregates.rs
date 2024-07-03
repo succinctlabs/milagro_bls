@@ -3,11 +3,12 @@ extern crate rand;
 
 use super::amcl_utils::{
     self, ate2_evaluation, compress_g2, decompress_g2, g1mul, g2mul, hash_to_curve_g2, pair,
-    subgroup_check_g2, AmclError, Big, GroupG1, GroupG2, G2_BYTES,
+    subgroup_check_g2, AmclError, Big, GroupG1, GroupG2, G2_BYTES, CURVE_ORDER
 };
 use super::keys::PublicKey;
 use super::signature::Signature;
 use rand::Rng;
+
 
 /// Allows for the adding/combining of multiple BLS PublicKeys.
 ///
@@ -189,7 +190,8 @@ impl AggregateSignature {
 // 4. affine-transformations: 2,698,291 cycles
 // 5. generator-g1-negative: 54,595 cycles
 // 6. ate2-evaluation: 152,367,371 cycles
-// Total for fast_aggregate_verify: 378,727,635 cycles
+// Total for fast_aggregate_verify: 378,727,635 cycles\
+
     pub fn fast_aggregate_verify(&self, msg: &[u8], public_keys: &[&PublicKey]) -> bool {
         println!("cycle-tracker-start: fast_aggregate_verify");
         // Require at least one PublicKey
