@@ -232,6 +232,7 @@ impl AggregateSignature {
         sig_point.affine();
         key_point.affine();
         msg_hash.affine();
+
         println!("cycle-tracker-end: affine-transformations");
 
         println!("cycle-tracker-start: generator-g1-negative");
@@ -239,6 +240,10 @@ impl AggregateSignature {
         generator_g1_negative.neg(); // already affine
         println!("cycle-tracker-end: generator-g1-negative");
 
+        println!("Sig Point: {:?}", sig_point);
+        println!("Key Point: {:?}", key_point);
+        println!("Msg Hash: {:?}", msg_hash);
+        println!("Generator G1 Negative: {:?}", generator_g1_negative);
         println!("cycle-tracker-start: ate2-evaluation");
         // Faster ate2 evaualtion checks e(S, -G1) * e(H, PK) == 1
         let temp = ate2_evaluation(&sig_point, &generator_g1_negative, &msg_hash, &key_point);
