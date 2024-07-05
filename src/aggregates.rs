@@ -3,12 +3,11 @@ extern crate rand;
 
 use super::amcl_utils::{
     self, ate2_evaluation, compress_g2, decompress_g2, g1mul, g2mul, hash_to_curve_g2, pair,
-    subgroup_check_g2, AmclError, Big, GroupG1, GroupG2, G2_BYTES, CURVE_ORDER
+    subgroup_check_g2, AmclError, Big, GroupG1, GroupG2, G2_BYTES,
 };
 use super::keys::PublicKey;
 use super::signature::Signature;
 use rand::Rng;
-
 
 /// Allows for the adding/combining of multiple BLS PublicKeys.
 ///
@@ -184,13 +183,13 @@ impl AggregateSignature {
     /// PublicKeys must all be verified via Proof of Possession before running this function.
     /// https://tools.ietf.org/html/draft-irtf-cfrg-bls-signature-02#section-3.3.4
     /// 2024-07-02T00:42:37.299590Z DEBUG execute: │ ┌╴fast_aggregate_verify    
-// 1. subgroup-check-g2: 105,181,659 cycles
-// 2. aggregate-public-keys: 43,656,806 cycles
-// 3. hash-to-curve-g2: 74,764,286 cycles
-// 4. affine-transformations: 2,698,291 cycles
-// 5. generator-g1-negative: 54,595 cycles
-// 6. ate2-evaluation: 152,367,371 cycles
-// Total for fast_aggregate_verify: 378,727,635 cycles\
+    // 1. subgroup-check-g2: 105,181,659 cycles
+    // 2. aggregate-public-keys: 43,656,806 cycles
+    // 3. hash-to-curve-g2: 74,764,286 cycles
+    // 4. affine-transformations: 2,698,291 cycles
+    // 5. generator-g1-negative: 54,595 cycles
+    // 6. ate2-evaluation: 152,367,371 cycles
+    // Total for fast_aggregate_verify: 378,727,635 cycles\
 
     pub fn fast_aggregate_verify(&self, msg: &[u8], public_keys: &[&PublicKey]) -> bool {
         println!("cycle-tracker-start: fast_aggregate_verify");
@@ -225,7 +224,6 @@ impl AggregateSignature {
         let mut msg_hash = hash_to_curve_g2(msg);
         println!("cycle-tracker-end: hash-to-curve-g2");
 
-        println!("cycle-tracker-start: affine-transformations");
         // Points must be affine for pairing
         let mut sig_point = self.point.clone();
         let mut key_point = aggregate_public_key.point;
@@ -233,17 +231,9 @@ impl AggregateSignature {
         key_point.affine();
         msg_hash.affine();
 
-        println!("cycle-tracker-end: affine-transformations");
-
-        println!("cycle-tracker-start: generator-g1-negative");
         let mut generator_g1_negative = amcl_utils::GroupG1::generator();
         generator_g1_negative.neg(); // already affine
-        println!("cycle-tracker-end: generator-g1-negative");
 
-        println!("Sig Point: {:?}", sig_point);
-        println!("Key Point: {:?}", key_point);
-        println!("Msg Hash: {:?}", msg_hash);
-        println!("Generator G1 Negative: {:?}", generator_g1_negative);
         println!("cycle-tracker-start: ate2-evaluation");
         // Faster ate2 evaualtion checks e(S, -G1) * e(H, PK) == 1
         let temp = ate2_evaluation(&sig_point, &generator_g1_negative, &msg_hash, &key_point);

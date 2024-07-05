@@ -5,21 +5,19 @@ extern crate rand;
 
 use crate::BLSCurve;
 
-use BLSCurve::bls381::proof_of_possession::DST_G2;
-use BLSCurve::ecp::ECP;
-use BLSCurve::ecp2::ECP2;
-use BLSCurve::pair::{ate2, fexp};
-use sp1_precompiles::bls12381::decompress_pubkey;
 pub use amcl::errors::AmclError;
-pub use BLSCurve::big::{Big, MODBYTES};
+use sp1_precompiles::bls12381::decompress_pubkey;
+pub use BLSCurve::big::Big;
+use BLSCurve::bls381::proof_of_possession::DST_G2;
 pub use BLSCurve::bls381::proof_of_possession::{G1_BYTES, G2_BYTES, SECRET_KEY_BYTES};
 pub use BLSCurve::bls381::utils::{
-    self, deserialize_g1, deserialize_g2, serialize_g1, serialize_g2, subgroup_check_g1,
-    subgroup_check_g2,
+    self, deserialize_g2, serialize_g1, serialize_g2, subgroup_check_g1, subgroup_check_g2,
 };
+use BLSCurve::ecp::ECP;
+use BLSCurve::ecp2::ECP2;
 pub use BLSCurve::fp12::FP12;
-pub use BLSCurve::fp2::FP2;
 pub use BLSCurve::pair::{self, g1mul, g2mul};
+use BLSCurve::pair::{ate2, fexp};
 pub use BLSCurve::rom::CURVE_ORDER;
 
 pub type GroupG1 = ECP;
@@ -56,11 +54,11 @@ pub fn decompress_g1(g1_bytes: &[u8]) -> Result<GroupG1, AmclError> {
     if g1_bytes.len() != G1_BYTES {
         return Err(AmclError::InvalidG1Size);
     }
-    
+
     // Convert g1_bytes to [u8; 48]
     let mut compressed_key = [0u8; 48];
     compressed_key.copy_from_slice(g1_bytes);
-    
+
     // Use decompress_pubkey function
     match decompress_pubkey(&compressed_key) {
         Ok(decompressed) => {
@@ -68,7 +66,7 @@ pub fn decompress_g1(g1_bytes: &[u8]) -> Result<GroupG1, AmclError> {
             let x = Big::from_bytes(&decompressed[0..48]);
             let y = Big::from_bytes(&decompressed[48..96]);
             Ok(ECP::new_bigs(&x, &y))
-        },
+        }
         Err(_) => Err(AmclError::InvalidPoint),
     }
 }
