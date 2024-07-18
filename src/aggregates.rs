@@ -192,6 +192,7 @@ impl AggregateSignature {
     // Total for fast_aggregate_verify: 378,727,635 cycles\
 
     pub fn fast_aggregate_verify(&self, msg: &[u8], public_keys: &[&PublicKey]) -> bool {
+        println!("Milagro BLS");
         println!("cycle-tracker-start: fast_aggregate_verify");
         // Require at least one PublicKey
         if public_keys.is_empty() {
