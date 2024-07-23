@@ -12,7 +12,7 @@ name = "bls381_benches"
 harness = false
 
 [dependencies]
-sp1_precompiles = { git = "https://github.com/succinctlabs/sp1.git", package = "sp1-lib", tag = "v1.0.0-rc.1", features=["bls12381"] }
+sp1_precompiles = { git = "https://github.com/succinctlabs/sp1.git", package = "sp1-lib", tag = "v1.0.1", features=["bls12381"] }
 amcl = { package = "snowbridge-amcl", version="1.0.0", default-features = false, features = ["bls381"]}
 hex = { version = "0.4.0", optional = true }
 lazy_static = { version = "1.4.0", optional = true }
